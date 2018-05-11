@@ -17,23 +17,21 @@ class Data:
 	
 	-Manual truncation:
 	--- Overrides automatic truncation.
-	---	keyword: use=(StartTime,EndTime) in seconds
+	---	keyword: use=(StartTime,EndTime) units: seconds
 	---	ex: something = accelerdata.Data(Name_of_data_file,use=(StartTime,EndTime))
 	
-	-Figures are saved by default thus no ability to zoom.
-	---If you want the ability to zoom in on the plots...
-	---	keyword: save=False
-	---	ex: something = accelerdata.Data(Name_of_data_file,save=False)
-	
+	-Optional auto save.
+	---	keyword: save=True
+	---	ex: something = accelerdata.Data(Name_of_data_file,save=True)
 	
 	Input File Format:
 	'z0'	'z1'	'time'
-	|	  |	  |
-	|	  |	  |
+	  |	  |	  |
+	  |	  |	  |
 	
 	
 	'''
-	def __init__(self,filename,save=True,use=None,length=None,freq_gap=5,max_freq=None):
+	def __init__(self,filename,save=False,use=None,length=None,freq_gap=5,max_freq=None,total_time=20,fft_labels=True):
 		self.save = save
 		self.filename = filename
 		self.titles = np.loadtxt(self.filename,dtype=str)
@@ -43,7 +41,9 @@ class Data:
 		self.data = np.loadtxt(self.filename,skiprows=1)
 		self.z0_raw = self.data[:,0]
 		self.z1_raw = self.data[:,1]
-		self.time_raw = self.data[:,2] * 10e-7
+		self.total_time = total_time
+		self.conversion = (self.data[-1,2]+self.data[1,2]-self.data[0,2])/self.total_time
+		self.time_raw = self.data[:,2] / self.conversion
 		
 		self.z0_long = self.z0_raw - np.mean(self.z0_raw)
 		self.z1_long = self.z1_raw - np.mean(self.z1_raw)
@@ -79,6 +79,7 @@ class Data:
 		
 		self.freq_gap = freq_gap
 		self.max_freq = max_freq
+		self.fft_labels = fft_labels
 		
 	
 	def get_index(self,List,value):
@@ -149,7 +150,7 @@ class Data:
 		ax.set_ylim(top=1.1*max(fft[:max_freq]))
 		ax.set_xlabel('Frequency [Hz]')
 		ax.set_ylabel('Magnitude')
-		if cut == True:
+		if (cut == True) and (self.fft_labels == True):
 			for each in peak_freq:
 				ax.annotate(str(round(each[1],2))+'\n',xy=(each[1],each[0]),horizontalalignment='center')
 		
